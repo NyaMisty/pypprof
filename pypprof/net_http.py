@@ -17,11 +17,12 @@ try:
 except ImportError:
     has_mprofile = False
 
-from zprofile.cpu_profiler import CPUProfiler
-from zprofile.wall_profiler import WallProfiler
+from googlecloudprofiler.cpu_profiler import CPUProfiler
+from googlecloudprofiler.pythonprofiler import WallProfiler
 from pypprof.builder import Builder
 from pypprof import thread_profiler
 
+_NANOS_PER_SEC = 1000 * 1000 * 1000
 
 _wall_profiler = WallProfiler()
 
@@ -92,13 +93,13 @@ class PProfRequestHandler(BaseHTTPRequestHandler):
         duration_qs = query.get("seconds", [30])
         duration_secs = int(duration_qs[0])
         cpu_profiler = CPUProfiler()
-        pprof = cpu_profiler.profile(duration_secs)
+        pprof = cpu_profiler.profile(duration_secs * _NANOS_PER_SEC)
         self._send_profile(pprof)
 
     def wall(self, query):
         duration_qs = query.get("seconds", [30])
         duration_secs = int(duration_qs[0])
-        pprof = _wall_profiler.profile(duration_secs)
+        pprof = _wall_profiler.profile(duration_secs * _NANOS_PER_SEC)
         self._send_profile(pprof)
 
     def heap(self, query):

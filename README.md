@@ -5,6 +5,8 @@ Under the hood, it uses [zprofile](https://github.com/timpalpant/zprofile) and [
 
 # Usage
 
+**Manually install latest https://github.com/GoogleCloudPlatform/cloud-profiler-python before use!**
+
 ## Add profiling endpoints to an application
 
 Register the profiling endpoints in your application:
