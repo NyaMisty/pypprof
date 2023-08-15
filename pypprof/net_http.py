@@ -18,13 +18,13 @@ except ImportError:
     has_mprofile = False
 
 from googlecloudprofiler.cpu_profiler import CPUProfiler
-from googlecloudprofiler.pythonprofiler import WallProfiler
+# from googlecloudprofiler.pythonprofiler import WallProfiler
 from pypprof.builder import Builder
 from pypprof import thread_profiler
 
 _NANOS_PER_SEC = 1000 * 1000 * 1000
 
-_wall_profiler = WallProfiler()
+# _wall_profiler = WallProfiler()
 
 
 def start_pprof_server(host='localhost', port=8080):
@@ -39,7 +39,7 @@ def start_pprof_server(host='localhost', port=8080):
     # on the main thread. So do it now before spawning the background thread.
     # As a result, starting the pprof server has the side effect of registering the
     # wall-clock profiler's SIGALRM handler, which may conflict with other uses.
-    _wall_profiler.register_handler()
+    # _wall_profiler.register_handler()
 
     server = HTTPServer((host, port), PProfRequestHandler)
     bg_thread = threading.Thread(target=server.serve_forever)
@@ -68,8 +68,8 @@ class PProfRequestHandler(BaseHTTPRequestHandler):
             self.index()
         elif route == "/debug/pprof/profile":
             self.profile(qs)
-        elif route == "/debug/pprof/wall":
-            self.wall(qs)
+        # elif route == "/debug/pprof/wall":
+        #     self.wall(qs)
         elif route == "/debug/pprof/heap":
             self.heap(qs)
         elif route in ("/debug/pprof/thread", "/debug/pprof/goroutine"):
@@ -97,10 +97,11 @@ class PProfRequestHandler(BaseHTTPRequestHandler):
         self._send_profile(pprof)
 
     def wall(self, query):
-        duration_qs = query.get("seconds", [30])
-        duration_secs = int(duration_qs[0])
-        pprof = _wall_profiler.profile(duration_secs * _NANOS_PER_SEC)
-        self._send_profile(pprof)
+        # duration_qs = query.get("seconds", [30])
+        # duration_secs = int(duration_qs[0])
+        # pprof = _wall_profiler.profile(duration_secs * _NANOS_PER_SEC)
+        # self._send_profile(pprof)
+        pass
 
     def heap(self, query):
         if query.get("gc"):
