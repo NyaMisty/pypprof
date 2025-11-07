@@ -8,9 +8,12 @@ README = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.md")
 with io.open(README, encoding="utf-8") as f:
     long_description = f.read()
 
-install_requires = ["protobuf", "six", "google-cloud-profiler"]
+install_requires = ["protobuf", "six"]
+extras_require = {
+    'cpu': ["google-cloud-profiler"],
+}
 if sys.version_info.major >= 3:
-    install_requires.append("mprofile")
+    extras_require["mem"] = "mprofile"
 
 setup(
     name="pypprof",
@@ -45,5 +48,6 @@ setup(
     packages=["pypprof"],
     package_data={"pypprof": ["index.html"]},
     install_requires=install_requires,
+    extras_require=extras_require,
     test_suite="test",
 )

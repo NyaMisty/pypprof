@@ -17,8 +17,13 @@ try:
 except ImportError:
     has_mprofile = False
 
-from googlecloudprofiler.cpu_profiler import CPUProfiler
-# from googlecloudprofiler.pythonprofiler import WallProfiler
+try:
+    from googlecloudprofiler.cpu_profiler import CPUProfiler
+    # from googlecloudprofiler.pythonprofiler import WallProfiler
+    has_cpu_profile = True
+except ImportError:
+    has_cpu_profile = False
+
 from pypprof.builder import Builder
 from pypprof import thread_profiler
 
@@ -90,6 +95,8 @@ class PProfRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(body.encode("utf-8"))
 
     def profile(self, query):
+        if not has_mprofile:
+            return self.send_error(412, "google-cloud-profiler must be installed to enable cpu profiling")
         duration_qs = query.get("seconds", [30])
         duration_secs = int(duration_qs[0])
         cpu_profiler = CPUProfiler()
