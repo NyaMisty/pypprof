@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import gc
-import pkg_resources
+import pkgutil
 import sys
 import threading
 import time
@@ -19,17 +19,24 @@ except ImportError:
 
 try:
     from googlecloudprofiler.cpu_profiler import CPUProfiler
-    # from googlecloudprofiler.pythonprofiler import WallProfiler
     has_cpu_profile = True
 except ImportError:
     has_cpu_profile = False
+
+try:
+    from googlecloudprofiler.pythonprofiler import WallProfiler
+    has_wall_profiler = True
+except ImportError:
+    has_wall_profiler = False
 
 from pypprof.builder import Builder
 from pypprof import thread_profiler
 
 _NANOS_PER_SEC = 1000 * 1000 * 1000
 
-# _wall_profiler = WallProfiler()
+if has_wall_profiler:
+    WALL_PERIOD_MS = 10
+    _wall_profiler = WallProfiler(WALL_PERIOD_MS)
 
 
 def start_pprof_server(host='localhost', port=8080):
@@ -44,7 +51,8 @@ def start_pprof_server(host='localhost', port=8080):
     # on the main thread. So do it now before spawning the background thread.
     # As a result, starting the pprof server has the side effect of registering the
     # wall-clock profiler's SIGALRM handler, which may conflict with other uses.
-    # _wall_profiler.register_handler()
+    if has_wall_profiler:
+        _wall_profiler.register_handler()
 
     server = HTTPServer((host, port), PProfRequestHandler)
     bg_thread = threading.Thread(target=server.serve_forever)
@@ -73,8 +81,8 @@ class PProfRequestHandler(BaseHTTPRequestHandler):
             self.index()
         elif route == "/debug/pprof/profile":
             self.profile(qs)
-        # elif route == "/debug/pprof/wall":
-        #     self.wall(qs)
+        elif route == "/debug/pprof/wall":
+            self.wall(qs)
         elif route == "/debug/pprof/heap":
             self.heap(qs)
         elif route in ("/debug/pprof/thread", "/debug/pprof/goroutine"):
@@ -85,17 +93,19 @@ class PProfRequestHandler(BaseHTTPRequestHandler):
             self.send_error(404)
 
     def index(self):
-        template = pkg_resources.resource_string(__name__, "index.html").decode("utf-8")
+        template_data = pkgutil.get_data(__name__, "index.html")
+        assert template_data is not None
+        template = template_data.decode("utf-8")
         body = template.format(num_threads=threading.active_count())
 
         self.send_response(200)
         self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
         self.wfile.write(body.encode("utf-8"))
 
     def profile(self, query):
-        if not has_mprofile:
+        if not has_cpu_profile:
             return self.send_error(412, "google-cloud-profiler must be installed to enable cpu profiling")
         duration_qs = query.get("seconds", [30])
         duration_secs = int(duration_qs[0])
@@ -104,11 +114,12 @@ class PProfRequestHandler(BaseHTTPRequestHandler):
         self._send_profile(pprof)
 
     def wall(self, query):
-        # duration_qs = query.get("seconds", [30])
-        # duration_secs = int(duration_qs[0])
-        # pprof = _wall_profiler.profile(duration_secs * _NANOS_PER_SEC)
-        # self._send_profile(pprof)
-        pass
+        if not has_cpu_profile:
+            return self.send_error(412, "google-cloud-profiler must be installed to enable cpu profiling")
+        duration_qs = query.get("seconds", [30])
+        duration_secs = int(duration_qs[0])
+        pprof = _wall_profiler.profile(duration_secs * _NANOS_PER_SEC)
+        self._send_profile(pprof)
 
     def heap(self, query):
         if query.get("gc"):
