@@ -18,25 +18,19 @@ except ImportError:
     has_mprofile = False
 
 try:
-    from googlecloudprofiler.cpu_profiler import CPUProfiler
-    has_cpu_profile = True
+    from pypprof.yappi_profiler import YappiProfiler
+    has_yappi = True
 except ImportError:
-    has_cpu_profile = False
-
-try:
-    from googlecloudprofiler.pythonprofiler import WallProfiler
-    has_wall_profiler = True
-except ImportError:
-    has_wall_profiler = False
+    has_yappi = False
 
 from pypprof.builder import Builder
 from pypprof import thread_profiler
 
 _NANOS_PER_SEC = 1000 * 1000 * 1000
 
-if has_wall_profiler:
-    WALL_PERIOD_MS = 10
-    _wall_profiler = WallProfiler(WALL_PERIOD_MS)
+if has_yappi:
+    _cpu_profiler = YappiProfiler('cpu')
+    _wall_profiler = YappiProfiler('wall')
 
 
 def start_pprof_server(host='localhost', port=8080):
@@ -47,13 +41,6 @@ def start_pprof_server(host='localhost', port=8080):
 
     Returns the underlying HTTPServer. To stop the server, call shutdown().
     '''
-    # WallProfiler's registers a Python signal handler, which must be done
-    # on the main thread. So do it now before spawning the background thread.
-    # As a result, starting the pprof server has the side effect of registering the
-    # wall-clock profiler's SIGALRM handler, which may conflict with other uses.
-    if has_wall_profiler:
-        _wall_profiler.register_handler()
-
     server = HTTPServer((host, port), PProfRequestHandler)
     bg_thread = threading.Thread(target=server.serve_forever)
     bg_thread.daemon = True
@@ -105,17 +92,16 @@ class PProfRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(body.encode("utf-8"))
 
     def profile(self, query):
-        if not has_cpu_profile:
-            return self.send_error(412, "google-cloud-profiler must be installed to enable cpu profiling")
+        if not has_yappi:
+            return self.send_error(412, "yappi must be installed to enable cpu profiling")
         duration_qs = query.get("seconds", [30])
         duration_secs = int(duration_qs[0])
-        cpu_profiler = CPUProfiler()
-        pprof = cpu_profiler.profile(duration_secs * _NANOS_PER_SEC)
+        pprof = _cpu_profiler.profile(duration_secs * _NANOS_PER_SEC)
         self._send_profile(pprof)
 
     def wall(self, query):
-        if not has_cpu_profile:
-            return self.send_error(412, "google-cloud-profiler must be installed to enable cpu profiling")
+        if not has_yappi:
+            return self.send_error(412, "yappi must be installed to enable wall profiling")
         duration_qs = query.get("seconds", [30])
         duration_secs = int(duration_qs[0])
         pprof = _wall_profiler.profile(duration_secs * _NANOS_PER_SEC)

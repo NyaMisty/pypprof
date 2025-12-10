@@ -1,11 +1,9 @@
 # pypprof
 pypprof adds HTTP-based endpoints for collecting profiles from a running Python application a la Go's [`net/http/pprof`](https://golang.org/pkg/net/http/pprof/).
 
-Under the hood, it uses [zprofile](https://github.com/timpalpant/zprofile) and [mprofile](https://github.com/timpalpant/mprofile) to collect CPU and heap profiles with minimal overhead.
+Under the hood, it uses [yappi](https://github.com/sumerc/yappi) and [mprofile](https://github.com/timpalpant/mprofile) to collect CPU and heap profiles with minimal overhead.
 
 # Usage
-
-**Manually install latest https://github.com/GoogleCloudPlatform/cloud-profiler-python before use!**
 
 ## Add profiling endpoints to an application
 
