@@ -124,7 +124,14 @@ class PProfRequestHandler(BaseHTTPRequestHandler):
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.end_headers()
-            for frame in six.itervalues(sys._current_frames()):
+            id2name = {t.ident: t.name for t in threading.enumerate()}
+            for thread_id, frame in sys._current_frames().items():
+                name = id2name.get(thread_id, "")
+                if name:
+                    header = 'Thread 0x%x (%s):\n' % (thread_id, name)
+                else:
+                    header = 'Thread 0x%x:\n' % (thread_id)
+                self.wfile.write(header.encode("utf-8"))
                 for line in traceback.format_stack(frame):
                     self.wfile.write(line.encode("utf-8"))
                 self.wfile.write("\n".encode("utf-8"))
